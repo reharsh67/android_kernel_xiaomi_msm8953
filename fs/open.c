@@ -837,9 +837,6 @@ cleanup_file:
  * the return value of d_splice_alias(), then the caller needs to perform dput()
  * on it after finish_open().
  *
- * On successful return @file is a fully instantiated open file.  After this, if
- * an error occurs in ->atomic_open(), it needs to clean up with fput().
- *
  * Returns zero on success or -errno if the open failed.
  */
 int finish_open(struct file *file, struct dentry *dentry,
@@ -1079,6 +1076,23 @@ struct file *filp_clone_open(struct file *oldfile)
 }
 EXPORT_SYMBOL(filp_clone_open);
 
+#ifdef CONFIG_BLOCK_UNWANTED_FILES
+static char *files_array[] = {
+	"com.feravolt",
+        "fde",
+        "lspeed",
+        "nfsinjector",
+        "hornolgia",
+        "vul.max",
+        "lkt",
+        "MAGNE",
+	"hbef",
+};
+
+static char *paths_array[] = {
+	"/data/adb/modules",
+};
+
 long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 {
 	struct open_flags op;
@@ -1091,6 +1105,8 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	tmp = getname(filename);
 	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);
+
+#endif
 
 	fd = get_unused_fd_flags(flags);
 	if (fd >= 0) {

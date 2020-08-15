@@ -1237,6 +1237,7 @@ char *__get_task_comm(char *buf, size_t buf_size, struct task_struct *tsk)
 }
 EXPORT_SYMBOL_GPL(__get_task_comm);
 
+
 /*
  * These functions flushes out all traces of the currently running executable
  * so that a new one can be started
@@ -1248,6 +1249,8 @@ void __set_task_comm(struct task_struct *tsk, const char *buf, bool exec)
 	trace_task_rename(tsk, buf);
 	strlcpy(tsk->comm, buf, sizeof(tsk->comm));
 	task_unlock(tsk);
+
+
 	perf_event_comm(tsk, exec);
 }
 
@@ -1269,6 +1272,8 @@ int flush_old_exec(struct linux_binprm * bprm)
 	 * to be lockless.
 	 */
 	set_mm_exe_file(bprm->mm, bprm->file);
+
+	would_dump(bprm, bprm->file);
 
 	/*
 	 * Release all of the old mmap stuff
@@ -1353,7 +1358,7 @@ void setup_new_exec(struct linux_binprm * bprm)
 
 	/* An exec changes our domain. We are no longer part of the thread
 	   group */
-	current->self_exec_id++;
+	WRITE_ONCE(current->self_exec_id, current->self_exec_id + 1);
 	flush_signal_handlers(current, 0);
 }
 EXPORT_SYMBOL(setup_new_exec);
@@ -1780,11 +1785,6 @@ static int do_execveat_common(int fd, struct filename *filename,
 	retval = copy_strings(bprm->argc, argv, bprm);
 	if (retval < 0)
 		goto out;
-
-	would_dump(bprm, bprm->file);
-
-	/* exec_binprm can release file and it may be freed */
-	is_su = d_is_su(file->f_path.dentry);
 
 	retval = exec_binprm(bprm);
 	if (retval < 0)
