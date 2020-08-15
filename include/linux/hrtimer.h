@@ -419,8 +419,9 @@ extern u64 hrtimer_get_next_event(void);
 
 extern bool hrtimer_active(const struct hrtimer *timer);
 
-/**
- * hrtimer_is_queued = check, whether the timer is on one of the queues
+/*
+ * Helper function to check, whether the timer is on one of the queues
+
  */
 static inline int hrtimer_is_queued(struct hrtimer *timer)
 {

@@ -1051,6 +1051,18 @@ static void volume_control_quirks(struct usb_mixer_elem_info *cval,
 			cval->res = 384;
 		}
 		break;
+
+
+	case USB_ID(0x1130, 0x1620): /* Logitech Speakers S150 */
+	/* This audio device has 2 channels and it explicitly requires the
+	 * host to send SET_CUR command on the volume control of both the
+	 * channels. 7936 = 0x1F00 is the default value.
+	 */
+		if (cval->channels == 2)
+			snd_usb_mixer_set_ctl_value(cval, UAC_SET_CUR,
+						(cval->control << 8) | 2, 7936);
+		break;
+
 	case USB_ID(0x0495, 0x3042): /* ESS Technology Asus USB DAC */
 		if ((strstr(kctl->id.name, "Playback Volume") != NULL) ||
 			strstr(kctl->id.name, "Capture Volume") != NULL) {
@@ -1972,12 +1984,15 @@ static int parse_audio_mixer_unit(struct mixer_build *state, int unitid,
 	} else {
 		input_pins = desc->bNrInPins;
 		num_outs = uac_mixer_unit_bNrChannels(desc);
-		if (desc->bLength < 11 || !input_pins || !num_outs) {
+		if (desc->bLength < 11 || !input_pins ||
+		    desc->bLength < sizeof(*desc) + desc->bNrInPins ||
+		    !num_outs) {
 			usb_audio_err(state->chip,
 				      "invalid MIXER UNIT descriptor %d\n",
 				      unitid);
 			return -EINVAL;
 		}
+
 	if (desc->bLength < 11 || !(input_pins = desc->bNrInPins) ||
 	    desc->bLength < sizeof(*desc) + desc->bNrInPins ||
 	    !(num_outs = uac_mixer_unit_bNrChannels(desc))) {
@@ -1985,6 +2000,7 @@ static int parse_audio_mixer_unit(struct mixer_build *state, int unitid,
 			      "invalid MIXER UNIT descriptor %d\n",
 			      unitid);
 		return -EINVAL;
+
 	}
 }
 	num_ins = 0;

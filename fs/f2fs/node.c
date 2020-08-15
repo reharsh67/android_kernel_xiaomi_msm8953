@@ -1556,8 +1556,12 @@ static int __write_node_page(struct page *page, bool atomic, bool *submitted,
 	}
 
 	if (__is_valid_data_blkaddr(ni.blk_addr) &&
+<<<<<<< HEAD
 		!f2fs_is_valid_blkaddr(sbi, ni.blk_addr,
 					DATA_GENERIC_ENHANCE)) {
+=======
+		!f2fs_is_valid_blkaddr(sbi, ni.blk_addr, DATA_GENERIC)) {
+>>>>>>> 67ec965793663c18d73941f120b3d7f7459cc34f
 		up_read(&sbi->node_write);
 		goto redirty_out;
 	}
@@ -2108,7 +2112,11 @@ static bool add_free_nid(struct f2fs_sb_info *sbi,
 		 *   Thread A             Thread B
 		 *  - f2fs_create
 		 *   - f2fs_new_inode
+<<<<<<< HEAD
 		 *    - f2fs_alloc_nid
+=======
+		 *    - alloc_nid
+>>>>>>> 67ec965793663c18d73941f120b3d7f7459cc34f
 		 *     - __insert_nid_to_list(PREALLOC_NID)
 		 *                     - f2fs_balance_fs_bg
 		 *                      - f2fs_build_free_nids
@@ -2121,7 +2129,11 @@ static bool add_free_nid(struct f2fs_sb_info *sbi,
 		 *    - f2fs_new_inode_page
 		 *     - f2fs_new_node_page
 		 *      - set_node_addr
+<<<<<<< HEAD
 		 *  - f2fs_alloc_nid_done
+=======
+		 *  - alloc_nid_done
+>>>>>>> 67ec965793663c18d73941f120b3d7f7459cc34f
 		 *   - __remove_nid_from_list(PREALLOC_NID)
 		 *                         - __insert_nid_to_list(FREE_NID)
 		 */

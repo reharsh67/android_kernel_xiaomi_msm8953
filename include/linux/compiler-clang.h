@@ -24,6 +24,7 @@
 #undef __noretpoline
 #endif
 
+
 #ifdef CONFIG_LTO_CLANG
 #ifdef CONFIG_FTRACE_MCOUNT_RECORD
 #define __norecordmcount \
@@ -40,6 +41,12 @@
 #if __has_feature(address_sanitizer)
 #define __SANITIZE_ADDRESS__
 #endif
+
+/* Clang doesn't have a way to turn it off per-function, yet. */
+#ifdef __noretpoline
+#undef __noretpoline
+#endif
+
 
 /*
  * Not all versions of clang implement the the type-generic versions

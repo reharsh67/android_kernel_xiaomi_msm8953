@@ -31,7 +31,6 @@
 #define EFI_READ_CHUNK_SIZE	(1024 * 1024)
 
 static unsigned long __chunk_size = EFI_READ_CHUNK_SIZE;
-
 static int __section(.data) __nokaslr;
 
 int __pure nokaslr(void)

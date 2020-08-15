@@ -2175,7 +2175,7 @@ do_more:
 		mutex_lock(&sbi->gc_mutex);
 	}
 
-	ret = f2fs_gc(sbi, range.sync, true, GET_SEGNO(sbi, range.start));
+	ret = f2fs_gc(sbi, range.sync, true, GET_SEGNO_FROM_SEG0(sbi, range.start));
 	range.start += BLKS_PER_SEC(sbi);
 	if (range.start <= end)
 		goto do_more;
@@ -2595,8 +2595,8 @@ static int f2fs_ioc_flush_device(struct file *filp, unsigned long arg)
 		return ret;
 
 	if (range.dev_num != 0)
-		dev_start_segno = GET_SEGNO(sbi, FDEV(range.dev_num).start_blk);
-	dev_end_segno = GET_SEGNO(sbi, FDEV(range.dev_num).end_blk);
+		dev_start_segno = GET_SEGNO_FROM_SEG0(sbi, FDEV(range.dev_num).start_blk);
+	dev_end_segno = GET_SEGNO_FROM_SEG0(sbi, FDEV(range.dev_num).end_blk);
 
 	start_segno = sm->last_victim[FLUSH_DEVICE];
 	if (start_segno < dev_start_segno || start_segno >= dev_end_segno)

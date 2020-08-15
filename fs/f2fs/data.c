@@ -512,7 +512,10 @@ next:
 		spin_unlock(&io->io_lock);
 	}
 
-	verify_fio_blkaddr(fio);
+	if (__is_valid_data_blkaddr(fio->old_blkaddr))
+		verify_block_addr(fio, fio->old_blkaddr);
+	verify_block_addr(fio, fio->new_blkaddr);
+
 
 	bio_page = fio->encrypted_page ? fio->encrypted_page : fio->page;
 	fio->op_flags |= fio->encrypted_page ? REQ_NOENCRYPT : 0;
@@ -582,6 +585,9 @@ static struct bio *f2fs_grab_read_bio(struct inode *inode, block_t blkaddr,
 	struct bio *bio;
 	struct bio_post_read_ctx *ctx;
 	unsigned int post_read_steps = 0;
+
+	if (!f2fs_is_valid_blkaddr(sbi, blkaddr, DATA_GENERIC))
+		return ERR_PTR(-EFAULT);
 
 	bio = f2fs_bio_alloc(sbi, min_t(int, nr_pages, BIO_MAX_PAGES), false);
 	if (!bio)
@@ -1543,6 +1549,7 @@ out:
 	return ret;
 }
 
+
 static int f2fs_read_single_page(struct inode *inode, struct page *page,
 					unsigned nr_pages,
 					struct f2fs_map_blocks *map,
@@ -1666,6 +1673,7 @@ out:
 	*bio_ret = bio;
 	return ret;
 }
+
 
 /*
  * This function was originally taken from fs/mpage.c, and customized for f2fs.
@@ -1878,7 +1886,9 @@ static inline bool need_inplace_update(struct f2fs_io_info *fio)
 	return f2fs_should_update_inplace(inode, fio);
 }
 
-int f2fs_do_write_data_page(struct f2fs_io_info *fio)
+
+int do_write_data_page(struct f2fs_io_info *fio)
+
 {
 	struct page *page = fio->page;
 	struct inode *inode = page->mapping->host;
@@ -1893,8 +1903,8 @@ int f2fs_do_write_data_page(struct f2fs_io_info *fio)
 			f2fs_lookup_extent_cache(inode, page->index, &ei)) {
 		fio->old_blkaddr = ei.blk + page->index - ei.fofs;
 
-		if (!f2fs_is_valid_blkaddr(fio->sbi, fio->old_blkaddr,
-						DATA_GENERIC_ENHANCE))
+		if (!f2fs_is_valid_blkaddr(fio->sbi, fio->old_blkaddr, DATA_GENERIC))
+
 			return -EFAULT;
 
 		ipu_force = true;
@@ -1920,8 +1930,8 @@ int f2fs_do_write_data_page(struct f2fs_io_info *fio)
 	}
 got_it:
 	if (__is_valid_data_blkaddr(fio->old_blkaddr) &&
-		!f2fs_is_valid_blkaddr(fio->sbi, fio->old_blkaddr,
-						DATA_GENERIC_ENHANCE)) {
+		!f2fs_is_valid_blkaddr(fio->sbi, fio->old_blkaddr, DATA_GENERIC)) {
+
 		err = -EFAULT;
 		goto out_writepage;
 	}
@@ -1929,9 +1939,8 @@ got_it:
 	 * If current allocation needs SSR,
 	 * it had better in-place writes for updated data.
 	 */
-	if (ipu_force ||
-		(__is_valid_data_blkaddr(fio->old_blkaddr) &&
-					need_inplace_update(fio))) {
+
+	if (ipu_force || (is_valid_data_blkaddr(fio->sbi, fio->old_blkaddr) && need_inplace_update(fio))) {
 		err = encrypt_one_page(fio);
 		if (err)
 			goto out_writepage;
