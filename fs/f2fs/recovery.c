@@ -270,9 +270,8 @@ static int recover_inode(struct inode *inode, struct page *page)
 	inode->i_mtime.tv_nsec = le32_to_cpu(raw->i_mtime_nsec);
 
 	F2FS_I(inode)->i_advise = raw->i_advise;
-
-	F2FS_I(inode)->i_gc_failures =
-			le16_to_cpu(raw->i_gc_failures);
+	F2FS_I(inode)->i_gc_failures[GC_FAILURE_PIN] =
+				le16_to_cpu(raw->i_gc_failures);
 
 
 	recover_inline_flags(inode, raw);
@@ -331,10 +330,9 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 
 			if (!check_only &&
 					IS_INODE(page) && is_dent_dnode(page)) {
-
-				err = recover_inode_page(sbi, page);
-				if (err)
-
+				err = f2fs_recover_inode_page(sbi, page);
+				if (err) {
+					f2fs_put_page(page, 1);
 					break;
 				}
 				quota_inode = true;
@@ -381,7 +379,6 @@ next:
 	}
 	return err;
 }
-
 static void destroy_fsync_dnodes(struct list_head *head, int drop)
 {
 	struct fsync_inode_entry *entry, *tmp;
@@ -394,7 +391,7 @@ static int check_index_in_prev_nodes(struct f2fs_sb_info *sbi,
 			block_t blkaddr, struct dnode_of_data *dn)
 {
 	struct seg_entry *sentry;
-	unsigned int segno = GET_SEGNO(sbi, blkaddr);
+	unsigned int segno = GET_SEGNO_FROM_SEG0(sbi, blkaddr);
 	unsigned short blkoff = GET_BLKOFF_FROM_SEG0(sbi, blkaddr);
 	struct f2fs_summary_block *sum_node;
 	struct f2fs_summary sum;

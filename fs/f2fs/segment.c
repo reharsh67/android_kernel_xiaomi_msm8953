@@ -1032,7 +1032,7 @@ static void __check_sit_bitmap(struct f2fs_sb_info *sbi,
 	unsigned long *map;
 
 	while (blk < end) {
-		segno = GET_SEGNO(sbi, blk);
+		segno = GET_SEGNO_FROM_SEG0(sbi, blk);
 		sentry = get_seg_entry(sbi, segno);
 		offset = GET_BLKOFF_FROM_SEG0(sbi, blk);
 
@@ -1803,7 +1803,7 @@ static int f2fs_issue_discard(struct f2fs_sb_info *sbi,
 			}
 		}
 
-		se = get_seg_entry(sbi, GET_SEGNO(sbi, i));
+		se = get_seg_entry(sbi, GET_SEGNO_FROM_SEG0(sbi, i));
 		offset = GET_BLKOFF_FROM_SEG0(sbi, i);
 
 		if (!f2fs_test_and_set_bit(offset, se->discard_map))
@@ -2096,7 +2096,7 @@ static void update_sit_entry(struct f2fs_sb_info *sbi, block_t blkaddr, int del)
 	bool mir_exist;
 #endif
 
-	segno = GET_SEGNO(sbi, blkaddr);
+	segno = GET_SEGNO_FROM_SEG0(sbi, blkaddr);
 
 	se = get_seg_entry(sbi, segno);
 	new_vblocks = se->valid_blocks + del;
@@ -2189,7 +2189,7 @@ static void update_sit_entry(struct f2fs_sb_info *sbi, block_t blkaddr, int del)
 
 void f2fs_invalidate_blocks(struct f2fs_sb_info *sbi, block_t addr)
 {
-	unsigned int segno = GET_SEGNO(sbi, addr);
+	unsigned int segno = GET_SEGNO_FROM_SEG0(sbi, addr);
 	struct sit_info *sit_i = SIT_I(sbi);
 
 	f2fs_bug_on(sbi, addr == NULL_ADDR);
@@ -2221,7 +2221,7 @@ bool f2fs_is_checkpointed_data(struct f2fs_sb_info *sbi, block_t blkaddr)
 
 	down_read(&sit_i->sentry_lock);
 
-	segno = GET_SEGNO(sbi, blkaddr);
+	segno = GET_SEGNO_FROM_SEG0(sbi, blkaddr);
 	se = get_seg_entry(sbi, segno);
 	offset = GET_BLKOFF_FROM_SEG0(sbi, blkaddr);
 
@@ -2774,9 +2774,9 @@ int f2fs_trim_fs(struct f2fs_sb_info *sbi, struct fstrim_range *range)
 	}
 
 	/* start/end segment number in main_area */
-	start_segno = (start <= MAIN_BLKADDR(sbi)) ? 0 : GET_SEGNO(sbi, start);
+	start_segno = (start <= MAIN_BLKADDR(sbi)) ? 0 : GET_SEGNO_FROM_SEG0(sbi, start);
 	end_segno = (end >= MAX_BLKADDR(sbi)) ? MAIN_SEGS(sbi) - 1 :
-						GET_SEGNO(sbi, end);
+						GET_SEGNO_FROM_SEG0(sbi, end);
 	if (need_align) {
 		start_segno = rounddown(start_segno, sbi->segs_per_sec);
 		end_segno = roundup(end_segno + 1, sbi->segs_per_sec) - 1;
@@ -3042,7 +3042,7 @@ void f2fs_allocate_data_block(struct f2fs_sb_info *sbi, struct page *page,
 	 * since SSR needs latest valid block information.
 	 */
 	update_sit_entry(sbi, *new_blkaddr, 1);
-	if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)
+	if (GET_SEGNO_FROM_SEG0(sbi, old_blkaddr) != NULL_SEGNO)
 		update_sit_entry(sbi, old_blkaddr, -1);
 
 	if (!__has_curseg_space(sbi, type))
@@ -3053,8 +3053,8 @@ void f2fs_allocate_data_block(struct f2fs_sb_info *sbi, struct page *page,
 	 * so we just need to update status only one time after previous
 	 * segment being closed.
 	 */
-	locate_dirty_segment(sbi, GET_SEGNO(sbi, old_blkaddr));
-	locate_dirty_segment(sbi, GET_SEGNO(sbi, *new_blkaddr));
+	locate_dirty_segment(sbi, GET_SEGNO_FROM_SEG0(sbi, old_blkaddr));
+	locate_dirty_segment(sbi, GET_SEGNO_FROM_SEG0(sbi, *new_blkaddr));
 
 	up_write(&sit_i->sentry_lock);
 
@@ -3112,7 +3112,7 @@ static void do_write_page(struct f2fs_summary *sum, struct f2fs_io_info *fio)
 reallocate:
 	f2fs_allocate_data_block(fio->sbi, fio->page, fio->old_blkaddr,
 			&fio->new_blkaddr, sum, type, fio, true);
-	if (GET_SEGNO(fio->sbi, fio->old_blkaddr) != NULL_SEGNO)
+	if (GET_SEGNO_FROM_SEG0(fio->sbi, fio->old_blkaddr) != NULL_SEGNO)
 		invalidate_mapping_pages(META_MAPPING(fio->sbi),
 					fio->old_blkaddr, fio->old_blkaddr);
 
@@ -3190,7 +3190,7 @@ int f2fs_inplace_write_data(struct f2fs_io_info *fio)
 	/* i/o temperature is needed for passing down write hints */
 	__get_segment_type(fio);
 
-	segno = GET_SEGNO(sbi, fio->new_blkaddr);
+	segno = GET_SEGNO_FROM_SEG0(sbi, fio->new_blkaddr);
 
 	if (!IS_DATASEG(get_seg_entry(sbi, segno)->type)) {
 		set_sbi_flag(sbi, SBI_NEED_FSCK);
@@ -3231,7 +3231,7 @@ void f2fs_do_replace_block(struct f2fs_sb_info *sbi, struct f2fs_summary *sum,
 	int type;
 	unsigned short old_blkoff;
 
-	segno = GET_SEGNO(sbi, new_blkaddr);
+	segno = GET_SEGNO_FROM_SEG0(sbi, new_blkaddr);
 	se = get_seg_entry(sbi, segno);
 	type = se->type;
 
@@ -3275,14 +3275,14 @@ void f2fs_do_replace_block(struct f2fs_sb_info *sbi, struct f2fs_summary *sum,
 
 	if (!recover_curseg || recover_newaddr)
 		update_sit_entry(sbi, new_blkaddr, 1);
-	if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO) {
+	if (GET_SEGNO_FROM_SEG0(sbi, old_blkaddr) != NULL_SEGNO) {
 		invalidate_mapping_pages(META_MAPPING(sbi),
 					old_blkaddr, old_blkaddr);
 		update_sit_entry(sbi, old_blkaddr, -1);
 	}
 
-	locate_dirty_segment(sbi, GET_SEGNO(sbi, old_blkaddr));
-	locate_dirty_segment(sbi, GET_SEGNO(sbi, new_blkaddr));
+	locate_dirty_segment(sbi, GET_SEGNO_FROM_SEG0(sbi, old_blkaddr));
+	locate_dirty_segment(sbi, GET_SEGNO_FROM_SEG0(sbi, new_blkaddr));
 
 	locate_dirty_segment(sbi, old_cursegno);
 

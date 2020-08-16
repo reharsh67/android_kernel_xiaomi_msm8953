@@ -415,7 +415,7 @@ struct page *f2fs_init_inode_metadata(struct inode *inode, struct inode *dir,
 		 * we should remove this inode from orphan list.
 		 */
 		if (inode->i_nlink == 0)
-			remove_orphan_inode(F2FS_I_SB(dir), inode->i_ino);
+			f2fs_remove_orphan_inode(F2FS_I_SB(dir), inode->i_ino);
 		f2fs_i_links_write(inode, true);
 	}
 	return page;
@@ -679,9 +679,9 @@ void f2fs_drop_nlink(struct inode *dir, struct inode *inode)
 	up_write(&F2FS_I(inode)->i_sem);
 
 	if (inode->i_nlink == 0)
-		add_orphan_inode(inode);
+		f2fs_add_orphan_inode(inode);
 	else
-		release_orphan_inode(sbi);
+		f2fs_release_orphan_inode(sbi);
 }
 
 /*
@@ -732,7 +732,7 @@ void f2fs_delete_entry(struct f2fs_dir_entry *dentry, struct page *page,
 		ClearPageUptodate(page);
 		clear_cold_data(page);
 		inode_dec_dirty_pages(dir);
-		remove_dirty_inode(dir);
+		f2fs_remove_dirty_inode(dir);
 	}
 	f2fs_put_page(page, 1);
 }

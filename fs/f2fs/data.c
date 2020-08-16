@@ -512,9 +512,7 @@ next:
 		spin_unlock(&io->io_lock);
 	}
 
-	if (__is_valid_data_blkaddr(fio->old_blkaddr))
-		verify_block_addr(fio, fio->old_blkaddr);
-	verify_block_addr(fio, fio->new_blkaddr);
+	verify_fio_blkaddr(fio);
 
 
 	bio_page = fio->encrypted_page ? fio->encrypted_page : fio->page;
@@ -964,7 +962,7 @@ alloc:
 	old_blkaddr = dn->data_blkaddr;
 	f2fs_allocate_data_block(sbi, NULL, old_blkaddr, &dn->data_blkaddr,
 					&sum, seg_type, NULL, false);
-	if (GET_SEGNO(sbi, old_blkaddr) != NULL_SEGNO)
+	if (GET_SEGNO_FROM_SEG0(sbi, old_blkaddr) != NULL_SEGNO)
 		invalidate_mapping_pages(META_MAPPING(sbi),
 					old_blkaddr, old_blkaddr);
 	f2fs_set_data_blkaddr(dn);
@@ -1887,7 +1885,8 @@ static inline bool need_inplace_update(struct f2fs_io_info *fio)
 }
 
 
-int do_write_data_page(struct f2fs_io_info *fio)
+
+int f2fs_do_write_data_page(struct f2fs_io_info *fio)
 
 {
 	struct page *page = fio->page;
@@ -1940,7 +1939,9 @@ got_it:
 	 * it had better in-place writes for updated data.
 	 */
 
-	if (ipu_force || (is_valid_data_blkaddr(fio->sbi, fio->old_blkaddr) && need_inplace_update(fio))) {
+	if (ipu_force ||
+		(__is_valid_data_blkaddr(fio->old_blkaddr) &&
+					need_inplace_update(fio))) {
 		err = encrypt_one_page(fio);
 		if (err)
 			goto out_writepage;

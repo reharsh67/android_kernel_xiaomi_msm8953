@@ -1556,12 +1556,10 @@ static int __write_node_page(struct page *page, bool atomic, bool *submitted,
 	}
 
 	if (__is_valid_data_blkaddr(ni.blk_addr) &&
-<<<<<<< HEAD
+
 		!f2fs_is_valid_blkaddr(sbi, ni.blk_addr,
 					DATA_GENERIC_ENHANCE)) {
-=======
-		!f2fs_is_valid_blkaddr(sbi, ni.blk_addr, DATA_GENERIC)) {
->>>>>>> 67ec965793663c18d73941f120b3d7f7459cc34f
+
 		up_read(&sbi->node_write);
 		goto redirty_out;
 	}
